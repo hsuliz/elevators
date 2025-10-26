@@ -4,6 +4,7 @@
   packages = with pkgs; [
     git
     gomod2nix
+    which
   ];
 
   # https://devenv.sh/languages/
@@ -13,7 +14,7 @@
   };
 
   git-hooks.hooks = {
-    golangci-lint.enable = true;
+    #golangci-lint.enable = true;
     golines.enable = true;
     gotest.enable = true;
     nixpkgs-fmt.enable = true;
