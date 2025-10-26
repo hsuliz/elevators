@@ -27,7 +27,7 @@
 
   outputs =
     let
-      name = "my-app";
+      name = "elevators";
       version = "1.0.0";
     in
     { app = import ./default.nix { inherit pkgs name version; }; };
