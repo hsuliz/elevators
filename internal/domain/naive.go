@@ -10,7 +10,7 @@ type Naive struct{}
 
 func NewNaive() *Naive { return &Naive{} }
 
-func (n Naive) Pick(elevators []dto.Elevator) int {
+func (n Naive) Pick(elevators []*dto.Elevator) int {
 	for i, e := range elevators {
 		if e.Status != dto.IDLE {
 			return i

@@ -38,11 +38,7 @@ func (s *System) Call(floorNumber int) bool {
 }
 
 func (s *System) Pick(floorNumber int) {
-	elevatorsAsValue := make([]dto.Elevator, len(s.Elevators))
-	for i, e := range s.Elevators {
-		elevatorsAsValue[i] = *e
-	}
-	pickedElevator := s.Picker.Pick(elevatorsAsValue)
+	pickedElevator := s.Picker.Pick(s.Elevators)
 	log.Printf("elevator picked %d", pickedElevator)
 	s.Move(pickedElevator, floorNumber)
 }
@@ -53,9 +49,17 @@ func (s *System) IsCalled(floorNumber int) bool {
 
 func (s *System) Move(elevatorId int, destinationFloor int) {
 	elevator := s.Elevators[elevatorId]
+
+	elevator.Locker.Lock()
+	defer elevator.Locker.Unlock()
+
 	for elevator.CurrentFlor != destinationFloor {
+		if elevator.CurrentFlor < destinationFloor {
+			elevator.CurrentFlor++
+		} else if elevator.CurrentFlor > destinationFloor {
+			elevator.CurrentFlor--
+		}
 		log.Printf("elevator %d current flor %d", elevatorId, elevator.CurrentFlor)
-		elevator.CurrentFlor++
 		time.Sleep(time.Millisecond)
 	}
 	log.Printf("elevator %d arrived at destiationd floor %d", elevatorId, destinationFloor)

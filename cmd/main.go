@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"sync"
+	"time"
 
 	"github.com/hsuliz/elevators/internal/domain"
 	"github.com/hsuliz/elevators/internal/domain/dto"
@@ -33,6 +34,7 @@ func main() {
 	wg.Wait()
 
 	log.Print(system.Status())
+	time.Sleep(2 * time.Second)
 	wg.Go(func() {
 		system.Call(10)
 	})
