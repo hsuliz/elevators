@@ -4,23 +4,23 @@ import (
 	"log"
 	"time"
 
-	"github.com/hsuliz/elevators/internal/domain/picker"
+	"github.com/hsuliz/elevators/internal/domain/dto"
 )
 
 type System struct {
-	Elevators []*Elevator
-	Picker    picker.Interface
-	Floors    []*Floor
+	Elevators []*dto.Elevator
+	Picker    Picker
+	Floors    []*dto.Floor
 }
 
-func NewSystem(elevators []*Elevator, pickerInterface picker.Interface, floorsNumber int) *System {
-	var floors = make([]*Floor, floorsNumber)
+func NewSystem(elevators []*dto.Elevator, picker Picker, floorsNumber int) *System {
+	var floors = make([]*dto.Floor, floorsNumber)
 	for i := range floorsNumber {
-		floors[i] = NewFloor()
+		floors[i] = dto.NewFloor()
 	}
 	return &System{
 		Elevators: elevators,
-		Picker:    pickerInterface,
+		Picker:    picker,
 		Floors:    floors,
 	}
 }
@@ -38,7 +38,11 @@ func (s *System) Call(floorNumber int) bool {
 }
 
 func (s *System) Pick(floorNumber int) {
-	pickedElevator := s.Picker.Pick(len(s.Elevators))
+	elevatorsAsValue := make([]dto.Elevator, len(s.Elevators))
+	for i, e := range s.Elevators {
+		elevatorsAsValue[i] = *e
+	}
+	pickedElevator := s.Picker.Pick(elevatorsAsValue)
 	log.Printf("elevator picked %d", pickedElevator)
 	s.Move(pickedElevator, floorNumber)
 }
@@ -51,9 +55,16 @@ func (s *System) Move(elevatorId int, destinationFloor int) {
 	elevator := s.Elevators[elevatorId]
 	for elevator.CurrentFlor != destinationFloor {
 		log.Printf("elevator %d current flor %d", elevatorId, elevator.CurrentFlor)
-
 		elevator.CurrentFlor++
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Millisecond)
 	}
 	log.Printf("elevator %d arrived at destiationd floor %d", elevatorId, destinationFloor)
+}
+
+func (s *System) Status() []dto.Elevator {
+	elevatorsAsValue := make([]dto.Elevator, len(s.Elevators))
+	for i, e := range s.Elevators {
+		elevatorsAsValue[i] = *e
+	}
+	return elevatorsAsValue
 }

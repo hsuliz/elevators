@@ -1,4 +1,4 @@
-package domain
+package dto
 
 type Elevator struct {
 	CurrentFlor int

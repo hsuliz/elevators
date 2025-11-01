@@ -1,23 +1,21 @@
 package main
 
 import (
+	"log"
 	"sync"
 
 	"github.com/hsuliz/elevators/internal/domain"
-	"github.com/hsuliz/elevators/internal/domain/picker"
+	"github.com/hsuliz/elevators/internal/domain/dto"
 )
 
 func main() {
-	elevator1 := domain.NewElevator()
-	elevator2 := domain.NewElevator()
-	elevator3 := domain.NewElevator()
-	elevator4 := domain.NewElevator()
-	elevator5 := domain.NewElevator()
-	elevators := []*domain.Elevator{elevator1, elevator2, elevator3, elevator4, elevator5}
+	elevator1 := dto.NewElevator()
+	elevator2 := dto.NewElevator()
+	elevators := []*dto.Elevator{elevator1, elevator2}
 
-	rngPicker := picker.NewRNG()
+	rngPicker := domain.NewNaive()
 
-	system := domain.NewSystem(elevators, rngPicker, 10)
+	system := domain.NewSystem(elevators, rngPicker, 11)
 
 	//systemElevators := system.Elevators
 	//for _, e := range systemElevators {
@@ -28,8 +26,16 @@ func main() {
 	wg.Go(func() {
 		system.Call(3)
 	})
+
 	wg.Go(func() {
-		system.Call(2)
+		system.Call(5)
 	})
 	wg.Wait()
+
+	log.Print(system.Status())
+	wg.Go(func() {
+		system.Call(10)
+	})
+	wg.Wait()
+	log.Print(system.Status())
 }

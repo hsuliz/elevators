@@ -1,4 +1,4 @@
-package domain
+package dto
 
 type Floor struct {
 	Called bool
