@@ -3,72 +3,79 @@ package domain
 import (
 	"log"
 	"time"
-
-	"github.com/hsuliz/elevators/internal/domain/dto"
 )
 
 type System struct {
-	Elevators []*dto.Elevator
-	Picker    Picker
-	Floors    []*dto.Floor
+	Elevators    []*Elevator
+	Picker       Picker
+	Floors       []*Floor
+	RequestQueue []int
+	CallChans    []chan int
 }
 
-func NewSystem(elevators []*dto.Elevator, picker Picker, floorsNumber int) *System {
-	var floors = make([]*dto.Floor, floorsNumber)
-	for i := range floorsNumber {
-		floors[i] = dto.NewFloor()
+func NewSystem(elevators []*Elevator, picker Picker, floorCount int) *System {
+	floors := make([]*Floor, floorCount)
+	for i := range floorCount {
+		floors[i] = NewFloor()
 	}
-	return &System{
-		Elevators: elevators,
-		Picker:    picker,
-		Floors:    floors,
+
+	callChans := make([]chan int, len(elevators))
+	for i := range len(elevators) {
+		callChans[i] = make(chan int)
+	}
+
+	system := &System{
+		Elevators:    elevators,
+		Picker:       picker,
+		Floors:       floors,
+		RequestQueue: make([]int, 0),
+		CallChans:    callChans,
+	}
+
+	for i := range len(elevators) {
+		go system.monitor(i)
+	}
+
+	return system
+}
+
+func (s *System) Call(floorNumber int) {
+	pickedElevatorId := s.Picker.Pick(s.Elevators)
+	s.CallChans[pickedElevatorId] <- floorNumber
+}
+
+func (s *System) monitor(elevatorId int) {
+	elevator := s.Elevators[elevatorId]
+	for floorNumber := range s.CallChans[elevatorId] {
+		log.Print("monitor ", elevatorId, floorNumber)
+		elevator.DestinationFloors = append(elevator.DestinationFloors, floorNumber)
+		// #TODO DestinationFloors self-balancing??
+		if len(elevator.DestinationFloors) == 1 {
+			go s.move(elevatorId)
+		}
 	}
 }
 
-func (s *System) Call(floorNumber int) bool {
-	log.Printf("trying to call elevator from floor number %d", floorNumber)
-	if s.IsCalled(floorNumber) {
-		log.Printf("elevator already called from floor number %d", floorNumber)
-		return false
-	}
-	s.Floors[floorNumber].Called = true
-	log.Printf("called elevator from floor number %d", floorNumber)
-	s.Pick(floorNumber)
-	return true
-}
-
-func (s *System) Pick(floorNumber int) {
-	pickedElevator := s.Picker.Pick(s.Elevators)
-	log.Printf("elevator picked %d", pickedElevator)
-	s.Move(pickedElevator, floorNumber)
-}
-
-func (s *System) IsCalled(floorNumber int) bool {
-	return s.Floors[floorNumber].Called
-}
-
-func (s *System) Move(elevatorId int, destinationFloor int) {
+func (s *System) move(elevatorId int) {
 	elevator := s.Elevators[elevatorId]
 
-	elevator.Locker.Lock()
-	defer elevator.Locker.Unlock()
-
-	for elevator.CurrentFlor != destinationFloor {
-		if elevator.CurrentFlor < destinationFloor {
-			elevator.CurrentFlor++
-		} else if elevator.CurrentFlor > destinationFloor {
-			elevator.CurrentFlor--
+	for len(elevator.DestinationFloors) != 0 {
+		switch {
+		case elevator.DestinationFloors[0] > elevator.CurrentFloor:
+			elevator.CurrentFloor++
+			elevator.Status = UP
+		case elevator.DestinationFloors[0] < elevator.CurrentFloor:
+			elevator.CurrentFloor--
+			elevator.Status = DOWN
+		case elevator.DestinationFloors[0] == elevator.CurrentFloor:
+			elevator.Status = IDLE
+			elevator.DestinationFloors = elevator.DestinationFloors[1:]
+			continue
 		}
-		log.Printf("elevator %d current flor %d", elevatorId, elevator.CurrentFlor)
-		time.Sleep(time.Millisecond)
-	}
-	log.Printf("elevator %d arrived at destiationd floor %d", elevatorId, destinationFloor)
-}
+		log.Printf("elevatorId: %d, currentFloor: %d", elevatorId, elevator.CurrentFloor)
 
-func (s *System) Status() []dto.Elevator {
-	elevatorsAsValue := make([]dto.Elevator, len(s.Elevators))
-	for i, e := range s.Elevators {
-		elevatorsAsValue[i] = *e
+		// simulate activity
+		time.Sleep(time.Second / 2)
 	}
-	return elevatorsAsValue
+	log.Print("movement finished")
 }

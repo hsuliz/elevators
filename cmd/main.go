@@ -1,43 +1,31 @@
 package main
 
 import (
-	"log"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/hsuliz/elevators/internal/domain"
-	"github.com/hsuliz/elevators/internal/domain/dto"
 )
 
 func main() {
-	elevator1 := dto.NewElevator()
-	elevator2 := dto.NewElevator()
-	elevators := []*dto.Elevator{elevator1, elevator2}
+	elevator1 := domain.NewElevator()
+	elevator2 := domain.NewElevator()
+	elevators := []*domain.Elevator{elevator1, elevator2}
 
-	rngPicker := domain.NewNaive()
+	naivePicker := domain.NewNaive()
 
-	system := domain.NewSystem(elevators, rngPicker, 11)
-
-	//systemElevators := system.Elevators
-	//for _, e := range systemElevators {
-	//	log.Print(e)
-	//}
+	system := domain.NewSystem(elevators, naivePicker, 11)
 
 	wg := &sync.WaitGroup{}
 	wg.Go(func() {
-		system.Call(3)
-	})
-
-	wg.Go(func() {
 		system.Call(5)
 	})
-	wg.Wait()
-
-	log.Print(system.Status())
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	wg.Go(func() {
-		system.Call(10)
+		system.Call(3)
 	})
 	wg.Wait()
-	log.Print(system.Status())
+	time.Sleep(time.Second * 5)
+	os.Exit(0)
 }
