@@ -6,11 +6,10 @@ import (
 )
 
 type System struct {
-	Elevators    []*Elevator
-	Picker       Picker
-	Floors       []*Floor
-	RequestQueue []int
-	CallChans    []chan int
+	Elevators []*Elevator
+	Picker    Picker
+	Floors    []*Floor
+	CallChans []chan int
 }
 
 func NewSystem(elevators []*Elevator, picker Picker, floorCount int) *System {
@@ -25,11 +24,10 @@ func NewSystem(elevators []*Elevator, picker Picker, floorCount int) *System {
 	}
 
 	system := &System{
-		Elevators:    elevators,
-		Picker:       picker,
-		Floors:       floors,
-		RequestQueue: make([]int, 0),
-		CallChans:    callChans,
+		Elevators: elevators,
+		Picker:    picker,
+		Floors:    floors,
+		CallChans: callChans,
 	}
 
 	for i := range len(elevators) {
