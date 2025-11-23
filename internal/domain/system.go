@@ -68,6 +68,11 @@ func (s *System) move(elevatorId int) {
 		case elevator.DestinationFloors[0] == elevator.CurrentFloor:
 			elevator.Status = IDLE
 			elevator.DestinationFloors = elevator.DestinationFloors[1:]
+			log.Printf(
+				"elevatorId: %d, came to destination floor: %d",
+				elevatorId,
+				elevator.CurrentFloor,
+			)
 			continue
 		}
 		log.Printf("elevatorId: %d, currentFloor: %d", elevatorId, elevator.CurrentFloor)

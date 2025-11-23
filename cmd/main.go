@@ -25,6 +25,9 @@ func main() {
 	wg.Go(func() {
 		system.Call(3)
 	})
+	wg.Go(func() {
+		system.Call(7)
+	})
 	wg.Wait()
 	time.Sleep(time.Second * 5)
 	os.Exit(0)
