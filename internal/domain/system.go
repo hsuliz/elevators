@@ -42,6 +42,29 @@ func (s *System) Call(floorNumber int) {
 	s.CallChans[pickedElevatorId] <- floorNumber
 }
 
+func (s *System) Status() <-chan Elevator {
+	ch := make(chan Elevator)
+
+	for _, elevator := range s.Elevators {
+		go func() {
+			prevState := *elevator
+			for {
+				current := *elevator
+
+				if !current.Equal(prevState) {
+					ch <- current
+					prevState = current
+				}
+
+				// polling delay
+				time.Sleep(50 * time.Millisecond)
+			}
+		}()
+	}
+
+	return ch
+}
+
 func (s *System) monitor(elevatorId int) {
 	elevator := s.Elevators[elevatorId]
 	for floorNumber := range s.CallChans[elevatorId] {
@@ -78,7 +101,7 @@ func (s *System) move(elevatorId int) {
 		log.Printf("elevatorId: %d, currentFloor: %d", elevatorId, elevator.CurrentFloor)
 
 		// simulate activity
-		time.Sleep(time.Second / 2)
+		time.Sleep(time.Second)
 	}
 	log.Print("movement finished")
 }

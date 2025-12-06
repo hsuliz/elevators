@@ -1,34 +1,19 @@
 package main
 
 import (
-	"os"
-	"sync"
-	"time"
-
 	"github.com/hsuliz/elevators/internal/domain"
+	"github.com/hsuliz/elevators/internal/port/api"
+	"github.com/hsuliz/elevators/internal/port/api/handler"
 )
 
 func main() {
-	elevator1 := domain.NewElevator()
-	elevator2 := domain.NewElevator()
+	elevator1 := domain.NewElevator(1)
+	elevator2 := domain.NewElevator(2)
 	elevators := []*domain.Elevator{elevator1, elevator2}
-
 	naivePicker := domain.NewNaive()
-
 	system := domain.NewSystem(elevators, naivePicker, 11)
 
-	wg := &sync.WaitGroup{}
-	wg.Go(func() {
-		system.Call(5)
-	})
-	time.Sleep(time.Second)
-	wg.Go(func() {
-		system.Call(3)
-	})
-	wg.Go(func() {
-		system.Call(7)
-	})
-	wg.Wait()
-	time.Sleep(time.Second * 5)
-	os.Exit(0)
+	systemHandler := handler.NewSystem(system)
+	webSocketHandler := handler.NewWebSocket(system)
+	api.NewServer(systemHandler, webSocketHandler).Start(":8080")
 }
