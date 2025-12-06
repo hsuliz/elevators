@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/hsuliz/elevators/internal/domain"
-	"github.com/hsuliz/elevators/internal/port/api"
-	"github.com/hsuliz/elevators/internal/port/api/handler"
+
+	api "github.com/hsuliz/elevators/internal/port/api"
 )
 
 func main() {
@@ -13,7 +13,6 @@ func main() {
 	naivePicker := domain.NewNaive()
 	system := domain.NewSystem(elevators, naivePicker, 11)
 
-	systemHandler := handler.NewSystem(system)
-	webSocketHandler := handler.NewWebSocket(system)
-	api.NewServer(systemHandler, webSocketHandler).Start(":8080")
+	systemHandler := api.NewSystemHandler(system)
+	api.NewServer(systemHandler).Start(":8080")
 }

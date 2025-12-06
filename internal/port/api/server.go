@@ -1,25 +1,24 @@
-package api
+package handler
 
 import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hsuliz/elevators/internal/port/api/handler"
 )
 
-type Server struct {
+type APIServer struct {
 	ginEngine *gin.Engine
 }
 
-func NewServer(systemHandler *handler.System, webSocketHandler *handler.WebSocket) *Server {
+func NewServer(systemHandler *SystemHandler) *APIServer {
 	router := gin.Default()
 
 	router.POST("/call/:floor", systemHandler.CallElevator)
-	router.GET("/ws", webSocketHandler.HandleWebSocket)
+	router.GET("/ws", systemHandler.SystemStatus)
 
-	return &Server{ginEngine: router}
+	return &APIServer{ginEngine: router}
 }
 
-func (s Server) Start(addr string) {
+func (s APIServer) Start(addr string) {
 	log.Fatal(s.ginEngine.Run(addr))
 }

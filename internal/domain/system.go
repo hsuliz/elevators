@@ -42,7 +42,7 @@ func (s *System) Call(floorNumber int) {
 	s.CallChans[pickedElevatorId] <- floorNumber
 }
 
-func (s *System) Status() <-chan Elevator {
+func (s *System) Activity() <-chan Elevator {
 	ch := make(chan Elevator)
 
 	for _, elevator := range s.Elevators {
