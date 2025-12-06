@@ -3,7 +3,6 @@
   # https://devenv.sh/packages/
   packages = with pkgs; [
     git
-    gomod2nix
     which
   ];
 
@@ -26,10 +25,9 @@
     echo 'go path' $GOPATH
   '';
 
-  outputs =
-    let
-      name = "elevators";
-      version = "1.0.0";
-    in
-    { app = import ./default.nix { inherit pkgs name version; }; };
+  scripts = {
+    buildApp.exec = ''
+      go build ./...
+    '';
+  };
 }

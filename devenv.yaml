@@ -1,8 +1,4 @@
 inputs:
-  gomod:
-    url: github:nix-community/gomod2nix
-    overlays:
-      - default
   mk-shell-bin:
     url: github:rrbutani/nix-mk-shell-bin
   nix2container:
