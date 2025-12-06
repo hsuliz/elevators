@@ -26,6 +26,10 @@
   '';
 
   scripts = {
+    install = ''
+      go mod download
+    '';
+
     buildApp.exec = ''
       go build ./...
     '';
