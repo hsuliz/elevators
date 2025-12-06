@@ -30,7 +30,7 @@
       go mod download
     '';
 
-    buildApp.exec = ''
+    build.exec = ''
       go build ./...
     '';
   };
