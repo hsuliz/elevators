@@ -1,26 +1,30 @@
 package handler
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/hsuliz/elevators/internal/domain"
-	"github.com/hsuliz/elevators/internal/port/api/types"
 )
 
 type SystemHandler struct {
 	domainSystem *domain.System
+	clients      map[*websocket.Conn]bool
+	mu           sync.RWMutex
 }
 
 func NewSystemHandler(domainSystem *domain.System) *SystemHandler {
-	return &SystemHandler{domainSystem}
+	return &SystemHandler{
+		domainSystem: domainSystem,
+		clients:      make(map[*websocket.Conn]bool),
+	}
 }
 
-func (s SystemHandler) CallElevator(c *gin.Context) {
+func (s *SystemHandler) CallElevator(c *gin.Context) {
 	floorParam := c.Param("floor")
 	floorNumber, err := strconv.Atoi(floorParam)
 	if err != nil {
@@ -35,7 +39,7 @@ func (s SystemHandler) CallElevator(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (s SystemHandler) SystemStatus(c *gin.Context) {
+func (s *SystemHandler) Activity(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("Failed to upgrade connection: %v", err)
@@ -43,19 +47,24 @@ func (s SystemHandler) SystemStatus(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	for activity := range s.domainSystem.Activity() {
-		statusRes := types.ElevatorResponse{
-			ID: activity.ID, CurrentFloor: activity.CurrentFloor, Status: activity.Status,
-		}
-		data, err := json.Marshal(statusRes)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
+	s.clients[conn] = true
 
-		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			log.Printf("Error writing message: %v", err)
-			continue
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			delete(s.clients, conn)
+			break
+		}
+	}
+}
+
+func (s *SystemHandler) ProcessActivity() {
+	for activity := range s.domainSystem.ActivityCh {
+		for client := range s.clients {
+			if err := client.WriteJSON(&activity); err != nil {
+				log.Printf("[Server] Error: %v", err)
+				client.Close()
+				delete(s.clients, client)
+			}
 		}
 	}
 }

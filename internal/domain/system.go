@@ -6,10 +6,12 @@ import (
 )
 
 type System struct {
-	Elevators []*Elevator
-	Picker    Picker
-	Floors    []*Floor
-	CallChans []chan int
+	Elevators  []*Elevator
+	Picker     Picker
+	Floors     []*Floor
+	CallChs    []chan int
+	MoveCh     chan int
+	ActivityCh chan Elevator
 }
 
 func NewSystem(elevators []*Elevator, picker Picker, floorCount int) *System {
@@ -24,57 +26,51 @@ func NewSystem(elevators []*Elevator, picker Picker, floorCount int) *System {
 	}
 
 	system := &System{
-		Elevators: elevators,
-		Picker:    picker,
-		Floors:    floors,
-		CallChans: callChans,
+		Elevators:  elevators,
+		Picker:     picker,
+		Floors:     floors,
+		CallChs:    callChans,
+		MoveCh:     make(chan int, 100),
+		ActivityCh: make(chan Elevator, 100),
 	}
 
 	for i := range len(elevators) {
-		go system.monitor(i)
+		system.monitor(i)
 	}
+	system.Activity()
 
 	return system
 }
 
 func (s *System) Call(floorNumber int) {
 	pickedElevatorId := s.Picker.Pick(s.Elevators)
-	s.CallChans[pickedElevatorId] <- floorNumber
+	s.CallChs[pickedElevatorId] <- floorNumber
 }
 
-func (s *System) Activity() <-chan Elevator {
-	ch := make(chan Elevator)
-
-	for _, elevator := range s.Elevators {
-		go func() {
-			prevState := *elevator
-			for {
-				current := *elevator
-
-				if !current.Equal(prevState) {
-					ch <- current
-					prevState = current
-				}
-
-				// polling delay
-				time.Sleep(50 * time.Millisecond)
-			}
-		}()
-	}
-
-	return ch
+func (s *System) Activity() {
+	go func() {
+		for id := range s.MoveCh {
+			elevator := s.Elevators[id]
+			log.Println("elevator:", elevator, "updated")
+			s.ActivityCh <- *elevator
+		}
+	}()
 }
 
 func (s *System) monitor(elevatorId int) {
-	elevator := s.Elevators[elevatorId]
-	for floorNumber := range s.CallChans[elevatorId] {
-		log.Print("monitor ", elevatorId, floorNumber)
-		elevator.DestinationFloors = append(elevator.DestinationFloors, floorNumber)
-		// #TODO DestinationFloors self-balancing??
-		if len(elevator.DestinationFloors) == 1 {
-			go s.move(elevatorId)
+	go func() {
+		elevator := s.Elevators[elevatorId]
+		for floorNumber := range s.CallChs[elevatorId] {
+			log.Print("monitor ", elevatorId, floorNumber)
+			elevator.mu.Lock()
+			elevator.DestinationFloors = append(elevator.DestinationFloors, floorNumber)
+			elevator.mu.Unlock()
+			// #TODO DestinationFloors self-balancing??
+			if len(elevator.DestinationFloors) == 1 {
+				go s.move(elevatorId)
+			}
 		}
-	}
+	}()
 }
 
 func (s *System) move(elevatorId int) {
@@ -83,13 +79,17 @@ func (s *System) move(elevatorId int) {
 	for len(elevator.DestinationFloors) != 0 {
 		switch {
 		case elevator.DestinationFloors[0] > elevator.CurrentFloor:
+			elevator.mu.Lock()
 			elevator.CurrentFloor++
 			elevator.Status = UP
+			elevator.mu.Unlock()
 		case elevator.DestinationFloors[0] < elevator.CurrentFloor:
 			elevator.CurrentFloor--
 			elevator.Status = DOWN
 		case elevator.DestinationFloors[0] == elevator.CurrentFloor:
+			elevator.mu.Lock()
 			elevator.Status = IDLE
+			elevator.mu.Unlock()
 			elevator.DestinationFloors = elevator.DestinationFloors[1:]
 			log.Printf(
 				"elevatorId: %d, came to destination floor: %d",
@@ -98,10 +98,10 @@ func (s *System) move(elevatorId int) {
 			)
 			continue
 		}
-		log.Printf("elevatorId: %d, currentFloor: %d", elevatorId, elevator.CurrentFloor)
-
-		// simulate activity
 		time.Sleep(time.Second)
+		// signal about update
+		s.MoveCh <- elevatorId
+		log.Printf("elevatorId: %d, currentFloor: %d", elevatorId, elevator.CurrentFloor)
 	}
 	log.Print("movement finished")
 }

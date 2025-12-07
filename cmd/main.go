@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/hsuliz/elevators/internal/domain"
 
-	api "github.com/hsuliz/elevators/internal/port/api"
+	api "github.com/hsuliz/elevators/internal/infrastructure/api"
 )
 
 func main() {

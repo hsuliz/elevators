@@ -14,7 +14,8 @@ func NewServer(systemHandler *SystemHandler) *APIServer {
 	router := gin.Default()
 
 	router.POST("/call/:floor", systemHandler.CallElevator)
-	router.GET("/ws", systemHandler.SystemStatus)
+	router.GET("/ws", systemHandler.Activity)
+	go systemHandler.ProcessActivity()
 
 	return &APIServer{ginEngine: router}
 }
