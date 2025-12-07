@@ -47,11 +47,15 @@ func (s *SystemHandler) Activity(c *gin.Context) {
 	}
 	defer conn.Close()
 
+	s.mu.Lock()
 	s.clients[conn] = true
+	s.mu.Unlock()
 
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {
+			s.mu.Lock()
 			delete(s.clients, conn)
+			s.mu.Unlock()
 			break
 		}
 	}
@@ -59,13 +63,18 @@ func (s *SystemHandler) Activity(c *gin.Context) {
 
 func (s *SystemHandler) ProcessActivity() {
 	for activity := range s.domainSystem.ActivityCh {
+		s.mu.RLock()
 		for client := range s.clients {
-			if err := client.WriteJSON(&activity); err != nil {
-				log.Printf("[Server] Error: %v", err)
+			if err := client.WriteJSON(activity); err != nil {
 				client.Close()
+				s.mu.RUnlock() // release before acquiring write lock
+				s.mu.Lock()
 				delete(s.clients, client)
+				s.mu.Unlock()
+				s.mu.RLock() // reacquire read lock
 			}
 		}
+		s.mu.RUnlock()
 	}
 }
 
