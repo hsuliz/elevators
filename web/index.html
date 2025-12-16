@@ -18,10 +18,6 @@
             padding: 10px;
         }
 
-        input, button {
-            padding: 8px;
-            margin-right: 5px;
-        }
     </style>
 </head>
 <body>
@@ -50,7 +46,7 @@
         ws.onclose = function (e) {
             addMessage('System', 'Connection closed');
             // Try to reconnect after 1 second
-            setTimeout(connect, 1);
+            setTimeout(connect, 1000);
         };
 
         // Connection error
