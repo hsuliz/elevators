@@ -1,10 +1,13 @@
-# Devenv
+# devenv
 .devenv*
 devenv.local.nix
 devenv.local.yaml
 
 # direnv
 .direnv
+
+# js
+static/app.js
 
 # pre-commit
 .pre-commit-config.yaml
