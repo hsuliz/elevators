@@ -4,12 +4,27 @@
   packages = with pkgs; [
     git
     which
+
+    nodePackages.typescript-language-server
   ];
 
   # https://devenv.sh/languages/
-  languages.go = {
-    enable = true;
-    package = pkgs.go_1_25;
+  languages = {
+    nix.enable = true;
+
+    go = {
+      enable = true;
+      package = pkgs.go_1_25;
+    };
+
+    javascript = {
+      enable = true;
+
+    };
+
+    typescript = {
+      enable = true;
+    };
   };
 
   git-hooks.hooks = {
@@ -26,12 +41,10 @@
   '';
 
   scripts = {
-    install = ''
-      go mod download
-    '';
+    go-install.exec = "go mod download";
+    go-build.exec = "go build ./...";
 
-    build.exec = ''
-      go build ./...
-    '';
+    ts-build.exec = "tsc";
+    ts-watch.exec = "tsc --watch";
   };
 }
