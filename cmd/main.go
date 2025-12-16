@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hsuliz/elevators/internal/domain"
+	"github.com/hsuliz/elevators/internal/infrastructure/api/handler"
 
 	api "github.com/hsuliz/elevators/internal/infrastructure/api"
 )
@@ -13,6 +14,6 @@ func main() {
 	naivePicker := domain.NewNaive()
 	system := domain.NewSystem(elevators, naivePicker, 11)
 
-	systemHandler := api.NewSystemHandler(system)
+	systemHandler := handler.NewSystem(system)
 	api.NewServer(systemHandler).Start(":8080")
 }

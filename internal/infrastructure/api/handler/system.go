@@ -11,20 +11,21 @@ import (
 	"github.com/hsuliz/elevators/internal/domain"
 )
 
-type SystemHandler struct {
+type System struct {
 	domainSystem *domain.System
 	clients      map[*websocket.Conn]bool
 	mu           sync.RWMutex
 }
 
-func NewSystemHandler(domainSystem *domain.System) *SystemHandler {
-	return &SystemHandler{
+func NewSystem(domainSystem *domain.System) *System {
+	systemHandler := &System{
 		domainSystem: domainSystem,
 		clients:      make(map[*websocket.Conn]bool),
 	}
+	return systemHandler
 }
 
-func (s *SystemHandler) CallElevator(c *gin.Context) {
+func (h *System) CallElevator(c *gin.Context) {
 	floorParam := c.Param("floor")
 	floorNumber, err := strconv.Atoi(floorParam)
 	if err != nil {
@@ -35,11 +36,11 @@ func (s *SystemHandler) CallElevator(c *gin.Context) {
 		return
 	}
 
-	s.domainSystem.Call(floorNumber)
+	h.domainSystem.Call(floorNumber)
 	c.Status(http.StatusOK)
 }
 
-func (s *SystemHandler) Activity(c *gin.Context) {
+func (h *System) Activity(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("Failed to upgrade connection: %v", err)
@@ -47,34 +48,34 @@ func (s *SystemHandler) Activity(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	s.mu.Lock()
-	s.clients[conn] = true
-	s.mu.Unlock()
+	h.mu.Lock()
+	h.clients[conn] = true
+	h.mu.Unlock()
 
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {
-			s.mu.Lock()
-			delete(s.clients, conn)
-			s.mu.Unlock()
+			h.mu.Lock()
+			delete(h.clients, conn)
+			h.mu.Unlock()
 			break
 		}
 	}
 }
 
-func (s *SystemHandler) ProcessActivity() {
-	for activity := range s.domainSystem.ActivityCh {
-		s.mu.RLock()
-		for client := range s.clients {
+func (h *System) ProcessActivity() {
+	for activity := range h.domainSystem.ActivityCh {
+		h.mu.RLock()
+		for client := range h.clients {
 			if err := client.WriteJSON(activity); err != nil {
 				client.Close()
-				s.mu.RUnlock() // release before acquiring write lock
-				s.mu.Lock()
-				delete(s.clients, client)
-				s.mu.Unlock()
-				s.mu.RLock() // reacquire read lock
+				h.mu.RUnlock() // release before acquiring write lock
+				h.mu.Lock()
+				delete(h.clients, client)
+				h.mu.Unlock()
+				h.mu.RLock() // reacquire read lock
 			}
 		}
-		s.mu.RUnlock()
+		h.mu.RUnlock()
 	}
 }
 
