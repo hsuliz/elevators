@@ -1,4 +1,4 @@
-let elevators: ElevatorType[] = [];
+import {updateElevatorCell} from "./render";
 
 const connect = (): void => {
     const ws = new WebSocket('ws://localhost:8080/ws');
@@ -9,9 +9,8 @@ const connect = (): void => {
 
     ws.onmessage = (event: MessageEvent<string>) => {
         try {
-            elevators = JSON.parse(event.data);
-            console.log("Got elevators:", elevators)
-
+            const elevator: ElevatorType = JSON.parse(event.data);
+            updateElevatorCell(elevator);
         } catch (e) {
             console.error('Failed to update elevators', e);
         }

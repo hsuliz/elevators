@@ -67,7 +67,12 @@ func (h *System) ProcessActivity() {
 	for activity := range h.domainSystem.ActivityCh {
 		h.mu.RLock()
 		for client := range h.clients {
-			if err := client.WriteJSON(activity); err != nil {
+			activityRes := types.ElevatorResponse{
+				ID:           activity.ID,
+				CurrentFloor: activity.CurrentFloor,
+				Status:       activity.Status,
+			}
+			if err := client.WriteJSON(activityRes); err != nil {
 				client.Close()
 				h.mu.RUnlock() // release before acquiring write lock
 				h.mu.Lock()

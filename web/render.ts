@@ -48,6 +48,8 @@ const renderTable = (floorCount: number, elevators: ElevatorType[]): void => {
     container.appendChild(table)
 }
 
+// id to floor
+const elevatorPositions: Record<number, number> = {}
 
 const populateTable = (elevators: ElevatorType[]): void => {
     for (const elevator of elevators) {
@@ -55,11 +57,37 @@ const populateTable = (elevators: ElevatorType[]): void => {
         const cell = document.querySelector<HTMLTableCellElement>(
             `td[data-elevator-id="${elevator.id}"][data-floor="${elevator.currentFloor}"]`
         )
-        console.log(cell)
+
         if (!cell) continue;
         cell.classList.add("elevator");
         cell.textContent = "E";
+        elevatorPositions[elevator.id] = elevator.currentFloor
     }
 }
 
-export {renderTable, populateTable}
+const updateElevatorCell = (elevator: ElevatorType) => {
+    console.log(elevator)
+    const currentFloor = elevatorPositions[elevator.id]
+    const currentCell = document.querySelector<HTMLTableCellElement>(
+        `td[data-elevator-id="${elevator.id}"][data-floor="${currentFloor}"]`
+    );
+    if (currentCell) {
+        currentCell.classList.remove("elevator");
+        currentCell.textContent = "";
+    }
+
+    const newCell = document.querySelector<HTMLTableCellElement>(
+        `td[data-elevator-id="${elevator.id}"][data-floor="${elevator.currentFloor}"]`
+    );
+    if (newCell) {
+        newCell.classList.add("elevator");
+        newCell.textContent = "E";
+    }
+
+    // Update map
+    elevatorPositions[elevator.id] = elevator.currentFloor;
+
+
+};
+
+export {renderTable, populateTable, updateElevatorCell}
