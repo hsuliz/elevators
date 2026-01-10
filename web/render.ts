@@ -26,12 +26,17 @@ const renderTable = (floorCount: number, elevators: ElevatorType[]): void => {
     table.appendChild(headerRow)
 
     // floor data
-    for (let i = floorCount; i != -1; i--) {
+    for (let i = floorCount; i >= 0; i--) {
         const rows = document.createElement("tr");
 
         const floor = document.createElement("td");
         floor.innerText = i.toString();
-        floor.addEventListener('click', () => callElevator(i));
+        floor.dataset.floorBtn = i.toString(); // Add data attribute for easy selection
+        floor.title = `Call elevator to floor ${i}`;
+        floor.addEventListener('click', async () => {
+            await callElevator(i);
+            floor.classList.add("floor-called"); // Visual feedback on click
+        });
 
         rows.appendChild(floor);
 
@@ -53,20 +58,27 @@ const elevatorPositions: Record<number, number> = {}
 
 const populateTable = (elevators: ElevatorType[]): void => {
     for (const elevator of elevators) {
-        console.log(elevator)
         const cell = document.querySelector<HTMLTableCellElement>(
             `td[data-elevator-id="${elevator.id}"][data-floor="${elevator.currentFloor}"]`
         )
 
         if (!cell) continue;
         cell.classList.add("elevator");
-        cell.textContent = "E";
+        cell.textContent = "●";
         elevatorPositions[elevator.id] = elevator.currentFloor
     }
 }
 
 const updateElevatorCell = (elevator: ElevatorType) => {
     console.log(elevator)
+
+    const floorBtn = document.querySelector<HTMLTableCellElement>(
+        `td[data-floor-btn="${elevator.currentFloor}"]`
+    );
+    if (floorBtn) {
+        floorBtn.classList.remove("floor-called");
+    }
+
     const currentFloor = elevatorPositions[elevator.id]
     const currentCell = document.querySelector<HTMLTableCellElement>(
         `td[data-elevator-id="${elevator.id}"][data-floor="${currentFloor}"]`
@@ -81,13 +93,10 @@ const updateElevatorCell = (elevator: ElevatorType) => {
     );
     if (newCell) {
         newCell.classList.add("elevator");
-        newCell.textContent = "E";
+        newCell.textContent = "●";
     }
 
-    // Update map
     elevatorPositions[elevator.id] = elevator.currentFloor;
-
-
 };
 
 export {renderTable, populateTable, updateElevatorCell}
