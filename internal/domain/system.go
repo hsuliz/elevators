@@ -60,10 +60,10 @@ func (s *System) Activity() {
 func (s *System) monitor(elevatorId int) {
 	go func() {
 		elevator := s.Elevators[elevatorId]
-		for floorNumber := range s.CallChs[elevatorId] {
-			log.Print("monitor ", elevatorId, floorNumber)
+		for destinationFloor := range s.CallChs[elevatorId] {
+			log.Print("monitor: ", elevatorId, elevator.CurrentFloor, destinationFloor)
 			elevator.mu.Lock()
-			elevator.DestinationFloors = append(elevator.DestinationFloors, floorNumber)
+			elevator.DestinationFloors = append(elevator.DestinationFloors, destinationFloor)
 			elevator.mu.Unlock()
 			// #TODO DestinationFloors self-balancing??
 			if len(elevator.DestinationFloors) == 1 {
@@ -84,23 +84,27 @@ func (s *System) move(elevatorId int) {
 			elevator.Status = UP
 			elevator.mu.Unlock()
 		case elevator.DestinationFloors[0] < elevator.CurrentFloor:
+			elevator.mu.Lock()
 			elevator.CurrentFloor--
 			elevator.Status = DOWN
+			elevator.mu.Unlock()
 		case elevator.DestinationFloors[0] == elevator.CurrentFloor:
 			elevator.mu.Lock()
 			elevator.Status = IDLE
 			elevator.mu.Unlock()
+			s.MoveCh <- elevatorId
 			elevator.DestinationFloors = elevator.DestinationFloors[1:]
 			log.Printf(
 				"elevatorId: %d, came to destination floor: %d",
 				elevatorId,
 				elevator.CurrentFloor,
 			)
+			time.Sleep(time.Second)
 			continue
 		}
-		time.Sleep(time.Second)
-		// signal about update
+
 		s.MoveCh <- elevatorId
+		time.Sleep(time.Second)
 		log.Printf("elevatorId: %d, currentFloor: %d", elevatorId, elevator.CurrentFloor)
 	}
 	log.Print("movement finished")
