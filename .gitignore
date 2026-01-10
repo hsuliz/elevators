@@ -7,7 +7,7 @@ devenv.local.yaml
 .direnv
 
 # js
-static/app.js
+static/main.js
 
 # pre-commit
 .pre-commit-config.yaml

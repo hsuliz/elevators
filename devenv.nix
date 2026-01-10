@@ -5,7 +5,7 @@
     git
     which
 
-    nodePackages.typescript-language-server
+    pkgs.esbuild
   ];
 
   # https://devenv.sh/languages/
@@ -17,13 +17,11 @@
       package = pkgs.go_1_25;
     };
 
+    typescript.enable = true;
+
     javascript = {
       enable = true;
-
-    };
-
-    typescript = {
-      enable = true;
+      npm.enable = true;
     };
   };
 
@@ -41,10 +39,12 @@
   '';
 
   scripts = {
+    nix-format.exec = "nixpkgs-fmt .";
+
     go-install.exec = "go mod download";
     go-build.exec = "go build ./...";
 
     ts-build.exec = "tsc";
-    ts-watch.exec = "tsc --watch";
+    ts-watch.exec = "esbuild web/main.ts --bundle --outfile=static/main.js --watch";
   };
 }

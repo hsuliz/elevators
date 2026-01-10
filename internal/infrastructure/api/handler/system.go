@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/hsuliz/elevators/internal/domain"
+	"github.com/hsuliz/elevators/internal/infrastructure/api/types"
 )
 
 type System struct {
@@ -77,6 +78,20 @@ func (h *System) ProcessActivity() {
 		}
 		h.mu.RUnlock()
 	}
+}
+
+func (h *System) GetElevators(c *gin.Context) {
+	responses := make([]types.ElevatorResponse, 0, len(h.domainSystem.Elevators))
+
+	for _, elevator := range h.domainSystem.Elevators {
+		responses = append(responses, types.ElevatorResponse{
+			ID:           elevator.ID,
+			CurrentFloor: elevator.CurrentFloor,
+			Status:       elevator.Status,
+		})
+	}
+
+	c.JSON(http.StatusOK, responses)
 }
 
 var upgrader = websocket.Upgrader{
