@@ -6,6 +6,7 @@
     which
 
     pkgs.esbuild
+    pkgs.nodePackages.prettier
   ];
 
   # https://devenv.sh/languages/
