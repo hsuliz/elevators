@@ -27,9 +27,14 @@
   };
 
   git-hooks.hooks = {
-    #golangci-lint.enable = true;
+    gofmt.enable = true;
+    golangci-lint.enable = true;
     golines.enable = true;
     gotest.enable = true;
+    govet.enable = true;
+
+    prettier.enable = true;
+
     nixpkgs-fmt.enable = true;
   };
 
@@ -41,6 +46,7 @@
 
   scripts = {
     nix-format.exec = "nixpkgs-fmt .";
+    ts-format.exec = "prettier . --write";
 
     go-install.exec = "go mod download";
     go-build.exec = "go build ./...";
