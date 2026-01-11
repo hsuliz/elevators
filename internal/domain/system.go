@@ -3,21 +3,24 @@ package domain
 import (
 	"log"
 	"time"
+
+	"github.com/hsuliz/elevators/internal/domain/picker"
+	"github.com/hsuliz/elevators/internal/domain/types"
 )
 
 type System struct {
-	Elevators  []*Elevator
-	Picker     Picker
-	Floors     []*Floor
+	Elevators  []*types.Elevator
+	Picker     picker.Interface
+	Floors     []*types.Floor
 	CallChs    []chan int
 	MoveCh     chan int
-	ActivityCh chan Elevator
+	ActivityCh chan types.Elevator
 }
 
-func NewSystem(elevators []*Elevator, picker Picker, floorCount int) *System {
-	floors := make([]*Floor, floorCount)
+func NewSystem(elevators []*types.Elevator, picker picker.Interface, floorCount int) *System {
+	floors := make([]*types.Floor, floorCount)
 	for i := range floorCount {
-		floors[i] = NewFloor()
+		floors[i] = types.NewFloor()
 	}
 
 	callChans := make([]chan int, len(elevators))
@@ -31,7 +34,7 @@ func NewSystem(elevators []*Elevator, picker Picker, floorCount int) *System {
 		Floors:     floors,
 		CallChs:    callChans,
 		MoveCh:     make(chan int, 100),
-		ActivityCh: make(chan Elevator, 100),
+		ActivityCh: make(chan types.Elevator, 100),
 	}
 
 	for i := range len(elevators) {
@@ -62,9 +65,9 @@ func (s *System) monitor(elevatorId int) {
 		elevator := s.Elevators[elevatorId]
 		for destinationFloor := range s.CallChs[elevatorId] {
 			log.Print("monitor: ", elevatorId, elevator.CurrentFloor, destinationFloor)
-			elevator.mu.Lock()
+			elevator.Mu.Lock()
 			elevator.DestinationFloors = append(elevator.DestinationFloors, destinationFloor)
-			elevator.mu.Unlock()
+			elevator.Mu.Unlock()
 			// #TODO DestinationFloors self-balancing??
 			if len(elevator.DestinationFloors) == 1 {
 				go s.move(elevatorId)
@@ -79,19 +82,19 @@ func (s *System) move(elevatorId int) {
 	for len(elevator.DestinationFloors) != 0 {
 		switch {
 		case elevator.DestinationFloors[0] > elevator.CurrentFloor:
-			elevator.mu.Lock()
+			elevator.Mu.Lock()
 			elevator.CurrentFloor++
-			elevator.Status = UP
-			elevator.mu.Unlock()
+			elevator.Status = types.UP
+			elevator.Mu.Unlock()
 		case elevator.DestinationFloors[0] < elevator.CurrentFloor:
-			elevator.mu.Lock()
+			elevator.Mu.Lock()
 			elevator.CurrentFloor--
-			elevator.Status = DOWN
-			elevator.mu.Unlock()
+			elevator.Status = types.DOWN
+			elevator.Mu.Unlock()
 		case elevator.DestinationFloors[0] == elevator.CurrentFloor:
-			elevator.mu.Lock()
-			elevator.Status = IDLE
-			elevator.mu.Unlock()
+			elevator.Mu.Lock()
+			elevator.Status = types.IDLE
+			elevator.Mu.Unlock()
 			s.MoveCh <- elevatorId
 			elevator.DestinationFloors = elevator.DestinationFloors[1:]
 			log.Printf(

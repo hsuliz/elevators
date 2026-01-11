@@ -59,7 +59,7 @@ const elevatorPositions: Record<number, number> = {}
 const populateTable = (elevators: ElevatorType[]): void => {
   for (const elevator of elevators) {
     const cell = document.querySelector<HTMLTableCellElement>(
-      `td[data-elevator-id="${elevator.id}"][data-floor="${elevator.currentFloor}"]`
+      `td[data-elevator-id="${elevator.id}"][data-floor="${elevator.currentFloor}"]`,
     )
 
     if (!cell) continue
@@ -73,7 +73,7 @@ const updateElevatorCell = (elevator: ElevatorType) => {
   console.log(elevator)
 
   const floorBtn = document.querySelector<HTMLTableCellElement>(
-    `td[data-floor-btn="${elevator.currentFloor}"]`
+    `td[data-floor-btn="${elevator.currentFloor}"]`,
   )
   if (floorBtn) {
     floorBtn.classList.remove("floor-called")
@@ -81,7 +81,7 @@ const updateElevatorCell = (elevator: ElevatorType) => {
 
   const currentFloor = elevatorPositions[elevator.id]
   const currentCell = document.querySelector<HTMLTableCellElement>(
-    `td[data-elevator-id="${elevator.id}"][data-floor="${currentFloor}"]`
+    `td[data-elevator-id="${elevator.id}"][data-floor="${currentFloor}"]`,
   )
   if (currentCell) {
     currentCell.classList.remove("elevator")
@@ -89,7 +89,7 @@ const updateElevatorCell = (elevator: ElevatorType) => {
   }
 
   const newCell = document.querySelector<HTMLTableCellElement>(
-    `td[data-elevator-id="${elevator.id}"][data-floor="${elevator.currentFloor}"]`
+    `td[data-elevator-id="${elevator.id}"][data-floor="${elevator.currentFloor}"]`,
   )
   if (newCell) {
     newCell.classList.add("elevator")

@@ -1,4 +1,4 @@
-package domain
+package types
 
 import "sync"
 
@@ -7,7 +7,7 @@ type Elevator struct {
 	CurrentFloor      int
 	DestinationFloors []int
 	Status            Status
-	mu                sync.Mutex
+	Mu                sync.Mutex
 }
 
 func NewElevator(id int) *Elevator {
