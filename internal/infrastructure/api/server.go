@@ -14,7 +14,13 @@ type APIServer struct {
 func NewServer(systemHandler *handler.System) *APIServer {
 	router := gin.Default()
 
-	router.Static("/index", "./static")
+	router.NoRoute(func(c *gin.Context) {
+		c.File("./static" + c.Request.URL.Path)
+	})
+
+	router.GET("/", func(c *gin.Context) {
+		c.File("./static/index.html")
+	})
 
 	router.POST("/call/:floor", systemHandler.CallElevator)
 
