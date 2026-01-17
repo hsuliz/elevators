@@ -28,8 +28,6 @@ WORKDIR /
 COPY --from=go-builder /elevators .
 COPY --from=go-builder /app/static ./static
 
-ENV GIN_MODE=release
-
 EXPOSE 8080
 
 CMD ["/elevators"]
