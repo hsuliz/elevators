@@ -12,6 +12,15 @@ import (
 	"github.com/hsuliz/elevators/internal/infrastructure/api/types"
 )
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	// Allow all origins for now (not recommended for production)
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
 type System struct {
 	domainSystem *domain.System
 	clients      map[*websocket.Conn]bool
@@ -97,13 +106,4 @@ func (h *System) GetElevators(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, responses)
-}
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	// Allow all origins for now (not recommended for production)
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
 }

@@ -18,11 +18,6 @@ type System struct {
 }
 
 func NewSystem(elevators []*types.Elevator, picker picker.Interface, floorCount int) *System {
-	floors := make([]*types.Floor, floorCount)
-	for i := range floorCount {
-		floors[i] = types.NewFloor()
-	}
-
 	callChans := make([]chan int, len(elevators))
 	for i := range len(elevators) {
 		callChans[i] = make(chan int)
@@ -31,7 +26,7 @@ func NewSystem(elevators []*types.Elevator, picker picker.Interface, floorCount 
 	system := &System{
 		Elevators:  elevators,
 		Picker:     picker,
-		Floors:     floors,
+		Floors:     createFloors(floorCount),
 		CallChs:    callChans,
 		MoveCh:     make(chan int, 100),
 		ActivityCh: make(chan types.Elevator, 100),
@@ -43,6 +38,14 @@ func NewSystem(elevators []*types.Elevator, picker picker.Interface, floorCount 
 	system.Activity()
 
 	return system
+}
+
+func createFloors(floorCount int) []*types.Floor {
+	floors := make([]*types.Floor, floorCount)
+	for i := range floorCount {
+		floors[i] = types.NewFloor()
+	}
+	return floors
 }
 
 func (s *System) Call(floorNumber int) {
