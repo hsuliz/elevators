@@ -1,7 +1,10 @@
 import { updateElevatorCell } from "./render"
 
 const connect = (): void => {
-  const ws = new WebSocket("ws://localhost:8080/ws")
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+  const host = window.location.hostname === "localhost" ? "localhost:8080" : window.location.host
+
+  const ws = new WebSocket(`${protocol}//${host}/ws`)
 
   ws.onopen = () => {
     console.log("WebSocket: connected")
