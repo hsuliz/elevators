@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/hsuliz/elevators/internal/domain"
-	apiTypes "github.com/hsuliz/elevators/internal/infrastructure/api/types"
+	"github.com/hsuliz/elevators/internal/infrastructure/api/types"
 )
 
 var upgrader = websocket.Upgrader{
@@ -20,13 +20,13 @@ var upgrader = websocket.Upgrader{
 
 type client struct {
 	conn *websocket.Conn
-	send chan apiTypes.ElevatorResponse
+	send chan types.ElevatorResponse
 }
 
 type hub struct {
 	register   chan *client
 	unregister chan *client
-	broadcast  chan apiTypes.ElevatorResponse
+	broadcast  chan types.ElevatorResponse
 
 	clients map[*client]struct{}
 }
@@ -35,7 +35,7 @@ func newHub() *hub {
 	return &hub{
 		register:   make(chan *client, 16),
 		unregister: make(chan *client, 16),
-		broadcast:  make(chan apiTypes.ElevatorResponse, 128),
+		broadcast:  make(chan types.ElevatorResponse, 128),
 		clients:    make(map[*client]struct{}),
 	}
 }
@@ -105,7 +105,7 @@ func (h *System) Activity(c *gin.Context) {
 
 	cl := &client{
 		conn: conn,
-		send: make(chan apiTypes.ElevatorResponse, 32),
+		send: make(chan types.ElevatorResponse, 32),
 	}
 
 	h.hub.register <- cl
@@ -129,7 +129,7 @@ func (h *System) Activity(c *gin.Context) {
 
 func (h *System) processActivity() {
 	for activity := range h.domainSystem.ActivityCh {
-		h.hub.broadcast <- apiTypes.ElevatorResponse{
+		h.hub.broadcast <- types.ElevatorResponse{
 			ID:           activity.ID,
 			CurrentFloor: activity.CurrentFloor,
 			Status:       activity.Status,
@@ -138,10 +138,10 @@ func (h *System) processActivity() {
 }
 
 func (h *System) GetElevators(c *gin.Context) {
-	responses := make([]apiTypes.ElevatorResponse, 0, len(h.domainSystem.Elevators))
+	responses := make([]types.ElevatorResponse, 0, len(h.domainSystem.Elevators))
 
 	for _, elevator := range h.domainSystem.Elevators {
-		responses = append(responses, apiTypes.ElevatorResponse{
+		responses = append(responses, types.ElevatorResponse{
 			ID:           elevator.ID,
 			CurrentFloor: elevator.CurrentFloor,
 			Status:       elevator.Status,

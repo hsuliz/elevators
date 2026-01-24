@@ -26,7 +26,6 @@ func NewServer(systemHandler *handler.System) *Server {
 	router.GET("/ws", systemHandler.Activity)
 	router.GET("/elevators", systemHandler.GetElevators)
 
-	// Start background processors once (broadcast loop, etc.)
 	systemHandler.Start()
 
 	return &Server{ginEngine: router}
