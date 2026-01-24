@@ -1,4 +1,4 @@
-package handler
+package api
 
 import (
 	"log"
@@ -7,11 +7,11 @@ import (
 	"github.com/hsuliz/elevators/internal/infrastructure/api/handler"
 )
 
-type APIServer struct {
+type Server struct {
 	ginEngine *gin.Engine
 }
 
-func NewServer(systemHandler *handler.System) *APIServer {
+func NewServer(systemHandler *handler.System) *Server {
 	router := gin.Default()
 
 	router.NoRoute(func(c *gin.Context) {
@@ -23,15 +23,15 @@ func NewServer(systemHandler *handler.System) *APIServer {
 	})
 
 	router.POST("/call/:floor", systemHandler.CallElevator)
-
 	router.GET("/ws", systemHandler.Activity)
-	go systemHandler.ProcessActivity()
-
 	router.GET("/elevators", systemHandler.GetElevators)
 
-	return &APIServer{ginEngine: router}
+	// Start background processors once (broadcast loop, etc.)
+	systemHandler.Start()
+
+	return &Server{ginEngine: router}
 }
 
-func (s APIServer) Start(addr string) {
+func (s *Server) Start(addr string) {
 	log.Fatal(s.ginEngine.Run(addr))
 }

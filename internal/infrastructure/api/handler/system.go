@@ -9,30 +9,78 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/hsuliz/elevators/internal/domain"
-	"github.com/hsuliz/elevators/internal/infrastructure/api/types"
+	apiTypes "github.com/hsuliz/elevators/internal/infrastructure/api/types"
 )
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	// Allow all origins for now (not recommended for production)
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+	CheckOrigin:     func(r *http.Request) bool { return true },
+}
+
+type client struct {
+	conn *websocket.Conn
+	send chan apiTypes.ElevatorResponse
+}
+
+type hub struct {
+	register   chan *client
+	unregister chan *client
+	broadcast  chan apiTypes.ElevatorResponse
+
+	clients map[*client]struct{}
+}
+
+func newHub() *hub {
+	return &hub{
+		register:   make(chan *client, 16),
+		unregister: make(chan *client, 16),
+		broadcast:  make(chan apiTypes.ElevatorResponse, 128),
+		clients:    make(map[*client]struct{}),
+	}
+}
+
+func (h *hub) run() {
+	for {
+		select {
+		case c := <-h.register:
+			h.clients[c] = struct{}{}
+		case c := <-h.unregister:
+			if _, ok := h.clients[c]; ok {
+				delete(h.clients, c)
+				close(c.send)
+				_ = c.conn.Close()
+			}
+		case msg := <-h.broadcast:
+			for c := range h.clients {
+				select {
+				case c.send <- msg:
+				default:
+				}
+			}
+		}
+	}
 }
 
 type System struct {
 	domainSystem *domain.System
-	clients      map[*websocket.Conn]bool
-	mu           sync.RWMutex
+
+	hub  *hub
+	once sync.Once
 }
 
 func NewSystem(domainSystem *domain.System) *System {
-	systemHandler := &System{
+	return &System{
 		domainSystem: domainSystem,
-		clients:      make(map[*websocket.Conn]bool),
+		hub:          newHub(),
 	}
-	return systemHandler
+}
+
+func (h *System) Start() {
+	h.once.Do(func() {
+		go h.hub.run()
+		go h.processActivity()
+	})
 }
 
 func (h *System) CallElevator(c *gin.Context) {
@@ -40,9 +88,7 @@ func (h *System) CallElevator(c *gin.Context) {
 	floorNumber, err := strconv.Atoi(floorParam)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid floor number",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid floor number"})
 		return
 	}
 
@@ -56,57 +102,46 @@ func (h *System) Activity(c *gin.Context) {
 		log.Printf("Failed to upgrade connection: %v", err)
 		return
 	}
-	defer func(conn *websocket.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Println("failed to close connection", err)
-		}
-	}(conn)
 
-	h.mu.Lock()
-	h.clients[conn] = true
-	h.mu.Unlock()
+	cl := &client{
+		conn: conn,
+		send: make(chan apiTypes.ElevatorResponse, 32),
+	}
+
+	h.hub.register <- cl
+
+	go func() {
+		for msg := range cl.send {
+			if err := cl.conn.WriteJSON(msg); err != nil {
+				h.hub.unregister <- cl
+				return
+			}
+		}
+	}()
 
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {
-			h.mu.Lock()
-			delete(h.clients, conn)
-			h.mu.Unlock()
-			break
+			h.hub.unregister <- cl
+			return
 		}
 	}
 }
 
-func (h *System) ProcessActivity() {
+func (h *System) processActivity() {
 	for activity := range h.domainSystem.ActivityCh {
-		h.mu.RLock()
-		for client := range h.clients {
-			activityRes := types.ElevatorResponse{
-				ID:           activity.ID,
-				CurrentFloor: activity.CurrentFloor,
-				Status:       activity.Status,
-			}
-			if err := client.WriteJSON(activityRes); err != nil {
-				err := client.Close()
-				if err != nil {
-					log.Println("failed to close connection", err)
-				}
-				h.mu.RUnlock()
-				h.mu.Lock()
-				delete(h.clients, client)
-				h.mu.Unlock()
-				h.mu.RLock()
-			}
+		h.hub.broadcast <- apiTypes.ElevatorResponse{
+			ID:           activity.ID,
+			CurrentFloor: activity.CurrentFloor,
+			Status:       activity.Status,
 		}
-		h.mu.RUnlock()
 	}
 }
 
 func (h *System) GetElevators(c *gin.Context) {
-	responses := make([]types.ElevatorResponse, 0, len(h.domainSystem.Elevators))
+	responses := make([]apiTypes.ElevatorResponse, 0, len(h.domainSystem.Elevators))
 
 	for _, elevator := range h.domainSystem.Elevators {
-		responses = append(responses, types.ElevatorResponse{
+		responses = append(responses, apiTypes.ElevatorResponse{
 			ID:           elevator.ID,
 			CurrentFloor: elevator.CurrentFloor,
 			Status:       elevator.Status,
