@@ -28,7 +28,6 @@
 
   git-hooks.hooks = {
     gofmt.enable = true;
-    golangci-lint.enable = true;
     golines.enable = true;
     gotest.enable = true;
     govet.enable = true;

@@ -56,7 +56,12 @@ func (h *System) Activity(c *gin.Context) {
 		log.Printf("Failed to upgrade connection: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer func(conn *websocket.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println("failed to close connection", err)
+		}
+	}(conn)
 
 	h.mu.Lock()
 	h.clients[conn] = true
@@ -82,12 +87,15 @@ func (h *System) ProcessActivity() {
 				Status:       activity.Status,
 			}
 			if err := client.WriteJSON(activityRes); err != nil {
-				client.Close()
-				h.mu.RUnlock() // release before acquiring write lock
+				err := client.Close()
+				if err != nil {
+					log.Println("failed to close connection", err)
+				}
+				h.mu.RUnlock()
 				h.mu.Lock()
 				delete(h.clients, client)
 				h.mu.Unlock()
-				h.mu.RLock() // reacquire read lock
+				h.mu.RLock()
 			}
 		}
 		h.mu.RUnlock()
