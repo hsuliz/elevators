@@ -15,13 +15,15 @@ type ElevatorActivity struct {
 
 type System struct {
 	Elevators  []*Elevator
+	Floors     map[int]bool
 	Picker     Picker
 	ActivityCh chan ElevatorActivity
 }
 
-func NewSystem(elevators []*Elevator, picker Picker) *System {
+func NewSystem(elevators []*Elevator, floors int, picker Picker) *System {
 	system := &System{
 		Elevators:  elevators,
+		Floors:     make(map[int]bool, floors),
 		Picker:     picker,
 		ActivityCh: make(chan ElevatorActivity, 100),
 	}
@@ -34,9 +36,14 @@ func NewSystem(elevators []*Elevator, picker Picker) *System {
 
 	return system
 }
+
 func (s *System) Call(floorNumber int) {
 	pickedElevatorID := s.Picker.Pick(s.Elevators)
 	s.Elevators[pickedElevatorID].requests <- floorNumber
+}
+
+func (s *System) GetFloors() map[int]bool {
+	return s.Floors
 }
 
 func (s *System) collectActivity() {

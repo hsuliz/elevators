@@ -25,6 +25,7 @@ func NewServer(systemHandler *handler.System) *Server {
 	router.POST("/call/:floor", systemHandler.CallElevator)
 	router.GET("/ws", systemHandler.Activity)
 	router.GET("/elevators", systemHandler.GetElevators)
+	router.GET("/floors", systemHandler.GetFloors)
 
 	systemHandler.Start()
 

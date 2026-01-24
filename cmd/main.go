@@ -13,7 +13,7 @@ func main() {
 	elevators := []*domain.Elevator{elevator1, elevator2}
 
 	naivePicker := domain.NewNaivePicker()
-	system := domain.NewSystem(elevators, naivePicker)
+	system := domain.NewSystem(elevators, 10, naivePicker)
 
 	systemHandler := handler.NewSystem(system)
 	api.NewServer(systemHandler).Start(":8080")

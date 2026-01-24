@@ -150,3 +150,8 @@ func (h *System) GetElevators(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses)
 }
+
+func (h *System) GetFloors(c *gin.Context) {
+	floors := h.domainSystem.GetFloors()
+	c.JSON(http.StatusOK, floors)
+}

@@ -1,13 +1,13 @@
 import { connect } from "./ws"
-import { getElevators, getFloorCount } from "./api"
+import { getElevators, getFloors } from "./api"
 import { populateTable, renderTable } from "./render"
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
     const elevators = await getElevators()
-    const floorCount = getFloorCount()
+    const floors = await getFloors()
 
-    renderTable(floorCount, elevators)
+    renderTable(floors.size, elevators)
     populateTable(elevators)
     connect()
   } catch (err) {

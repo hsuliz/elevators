@@ -6,7 +6,15 @@ const callElevator = async (floor: number): Promise<void> => {
   })
 }
 
-const getFloorCount = (): number => 10
+const getFloors = (): Promise<Map<number, boolean>> => {
+  return fetch("/floors")
+    .then((res) => res.json())
+    .then((json: any) => new Map(Object.entries(json).map(([k, v]) => [Number(k), Boolean(v)])))
+    .catch((err) => {
+      console.error("Failed to get floor count", err)
+      throw err
+    })
+}
 
 const getElevators = async (): Promise<ElevatorType[]> => {
   return fetch("/elevators")
@@ -16,4 +24,4 @@ const getElevators = async (): Promise<ElevatorType[]> => {
     })
 }
 
-export { callElevator, getFloorCount, getElevators }
+export { callElevator, getFloors, getElevators }
