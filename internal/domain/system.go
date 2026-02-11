@@ -38,6 +38,17 @@ func NewSystem(elevators []*Elevator, floors int, picker Picker) *System {
 }
 
 func (s *System) Call(floorNumber int) {
+	for _, e := range s.Elevators {
+		e.mu.Lock()
+		for _, dest := range e.DestinationFloors {
+			if dest == floorNumber {
+				e.mu.Unlock()
+				return
+			}
+		}
+		e.mu.Unlock()
+	}
+
 	pickedElevatorID := s.Picker.Pick(s.Elevators)
 	s.Elevators[pickedElevatorID].requests <- floorNumber
 }
