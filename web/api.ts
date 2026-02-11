@@ -12,7 +12,6 @@ const getFloors = (): Promise<Map<number, boolean>> => {
     .then((json: any) => new Map(Object.entries(json).map(([k, v]) => [Number(k), Boolean(v)])))
     .catch((err) => {
       console.error("Failed to get floor count", err)
-      throw err
     })
 }
 
