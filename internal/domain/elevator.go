@@ -74,7 +74,7 @@ func (e *Elevator) updator() {
 		switch {
 		default:
 			e.Status = IDLE
-			e.DestinationFloors = append(e.DestinationFloors[:0], e.DestinationFloors[1:]...)
+			e.DestinationFloors = e.DestinationFloors[1:]
 		case e.CurrentFloor < target:
 			e.CurrentFloor++
 			e.Status = UP
