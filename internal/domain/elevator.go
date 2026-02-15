@@ -53,7 +53,9 @@ func (e *Elevator) GetUpdates() <-chan struct{} {
 
 func (e *Elevator) requestor() {
 	for floor := range e.requestCh {
+		e.mu.Lock()
 		e.DestinationFloors = append(e.DestinationFloors, floor)
+		e.mu.Unlock()
 		log.Printf("elevator id %d: added destination floor: %d\n", e.ID, floor)
 	}
 }
