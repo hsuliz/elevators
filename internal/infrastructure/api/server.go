@@ -1,5 +1,6 @@
 package api
 
+/*
 import (
 	"log"
 
@@ -35,3 +36,4 @@ func NewServer(systemHandler *handler.System) *Server {
 func (s *Server) Start(addr string) {
 	log.Fatal(s.ginEngine.Run(addr))
 }
+*/

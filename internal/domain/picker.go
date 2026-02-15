@@ -2,8 +2,6 @@ package domain
 
 import (
 	"math/rand"
-
-	"github.com/hsuliz/elevators/internal/domain/types"
 )
 
 type Picker interface {
@@ -16,7 +14,7 @@ func NewNaivePicker() *NaivePicker { return &NaivePicker{} }
 
 func (n NaivePicker) Pick(elevators []*Elevator) int {
 	for i, e := range elevators {
-		if e.Status == types.IDLE {
+		if e.Status == IDLE {
 			return i
 		}
 	}

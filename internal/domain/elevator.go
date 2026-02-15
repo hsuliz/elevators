@@ -1,84 +1,86 @@
 package domain
 
 import (
+	"log"
 	"sync"
 	"time"
-
-	"github.com/hsuliz/elevators/internal/domain/types"
 )
+
+type ElevatorActivity struct {
+	ID                int
+	CurrentFloor      int
+	DestinationFloors []int
+	Status            Status
+}
 
 type Elevator struct {
 	ID                int
 	CurrentFloor      int
 	DestinationFloors []int
-	Status            types.Status
+	Status            Status
 
-	mu       sync.Mutex
-	requests chan int
-	updateCh chan int
+	requestCh chan int
+	updateCh  chan struct{}
+	mu        sync.Mutex
 }
 
 func NewElevator(id int) *Elevator {
 	return &Elevator{
 		ID:                id,
 		DestinationFloors: make([]int, 0),
-		Status:            types.IDLE,
-		requests:          make(chan int),
-		updateCh:          make(chan int),
+		Status:            IDLE,
 	}
 }
 
-func (e *Elevator) Run() {
-	ticker := time.NewTicker(time.Second)
+func (e *Elevator) TurnOn() {
+	e.requestCh = make(chan int)
+	e.updateCh = make(chan struct{})
+
+	go e.requestor()
+	go e.updator()
+
+	log.Printf("elevator id %d: turned ON\n", e.ID)
+}
+
+func (e *Elevator) RequestFloor(floorNumber int) {
+	log.Printf("elevator id %d: requesting floor %d", e.ID, floorNumber)
+	e.requestCh <- floorNumber
+}
+
+func (e *Elevator) GetUpdates() <-chan struct{} {
+	return e.updateCh
+}
+
+func (e *Elevator) requestor() {
+	for floor := range e.requestCh {
+		e.DestinationFloors = append(e.DestinationFloors, floor)
+		log.Printf("elevator id %d: added destination floor: %d\n", e.ID, floor)
+	}
+}
+
+func (e *Elevator) updator() {
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case floor := <-e.requests:
-			e.addFloor(floor)
-		case <-ticker.C:
-			e.step()
+	for range ticker.C {
+		if len(e.DestinationFloors) == 0 {
+			log.Printf("elevator id %d: DestinationFloors are empty\n", e.ID)
+			continue
 		}
-	}
-}
+		target := e.DestinationFloors[0]
 
-func (e *Elevator) addFloor(floor int) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
+		switch {
+		default:
+			e.Status = IDLE
+			e.DestinationFloors = append(e.DestinationFloors[:0], e.DestinationFloors[1:]...)
+		case e.CurrentFloor < target:
+			e.CurrentFloor++
+			e.Status = UP
+		case e.CurrentFloor > target:
+			e.CurrentFloor--
+			e.Status = DOWN
+		}
 
-	e.DestinationFloors = append(e.DestinationFloors, floor)
-
-	select {
-	case e.updateCh <- e.ID:
-	default:
-	}
-}
-
-func (e *Elevator) step() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	if len(e.DestinationFloors) == 0 {
-		e.Status = types.IDLE
-		return
-	}
-
-	target := e.DestinationFloors[0]
-
-	switch {
-	default:
-		e.Status = types.IDLE
-		e.DestinationFloors = e.DestinationFloors[1:]
-	case e.CurrentFloor < target:
-		e.CurrentFloor++
-		e.Status = types.UP
-	case e.CurrentFloor > target:
-		e.CurrentFloor--
-		e.Status = types.DOWN
-	}
-
-	select {
-	case e.updateCh <- e.ID:
-	default:
+		e.updateCh <- struct{}{}
 	}
 }

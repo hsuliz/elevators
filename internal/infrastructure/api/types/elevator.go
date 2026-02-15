@@ -1,11 +1,11 @@
 package types
 
 import (
-	"github.com/hsuliz/elevators/internal/domain/types"
+	"github.com/hsuliz/elevators/internal/domain"
 )
 
 type ElevatorResponse struct {
-	ID           int          `json:"id"`
-	CurrentFloor int          `json:"currentFloor"`
-	Status       types.Status `json:"status"`
+	ID           int           `json:"id"`
+	CurrentFloor int           `json:"currentFloor"`
+	Status       domain.Status `json:"status"`
 }
