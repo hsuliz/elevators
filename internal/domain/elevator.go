@@ -65,24 +65,33 @@ func (e *Elevator) updator() {
 	defer ticker.Stop()
 
 	for range ticker.C {
+		e.mu.Lock()
 		if len(e.DestinationFloors) == 0 {
-			log.Printf("elevator id %d: DestinationFloors are empty\n", e.ID)
+			e.Status = IDLE
+			e.mu.Unlock()
 			continue
 		}
+
 		target := e.DestinationFloors[0]
+		reached := false
 
 		switch {
-		default:
-			e.Status = IDLE
-			e.DestinationFloors = e.DestinationFloors[1:]
 		case e.CurrentFloor < target:
 			e.CurrentFloor++
 			e.Status = UP
 		case e.CurrentFloor > target:
 			e.CurrentFloor--
 			e.Status = DOWN
+		default:
+			e.Status = IDLE
+			e.DestinationFloors = e.DestinationFloors[1:]
+			reached = true
 		}
+		e.mu.Unlock()
 
 		e.updateCh <- struct{}{}
+		if reached {
+			log.Printf("elevator id %d: arrived at %d", e.ID, target)
+		}
 	}
 }
