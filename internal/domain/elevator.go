@@ -6,7 +6,15 @@ import (
 	"time"
 )
 
-type ElevatorActivity struct {
+type Status int
+
+const (
+	UP   = 1
+	IDLE = 0
+	DOWN = -1
+)
+
+type Activity struct {
 	ID                int
 	CurrentFloor      int
 	DestinationFloors []int
@@ -34,7 +42,7 @@ func NewElevator(id int) *Elevator {
 
 func (e *Elevator) TurnOn() {
 	e.requestCh = make(chan int)
-	e.updateCh = make(chan struct{})
+	e.updateCh = make(chan struct{}, 1)
 
 	go e.requestor()
 	go e.updator()
@@ -49,6 +57,26 @@ func (e *Elevator) RequestFloor(floorNumber int) {
 
 func (e *Elevator) GetUpdates() <-chan struct{} {
 	return e.updateCh
+}
+
+func (e *Elevator) Lock() {
+	e.mu.Lock()
+}
+
+func (e *Elevator) Unlock() {
+	e.mu.Unlock()
+}
+
+func (e *Elevator) GetActivity() Activity {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return Activity{
+		ID:                e.ID,
+		CurrentFloor:      e.CurrentFloor,
+		DestinationFloors: append([]int(nil), e.DestinationFloors...),
+		Status:            e.Status,
+	}
 }
 
 func (e *Elevator) requestor() {
@@ -89,7 +117,12 @@ func (e *Elevator) updator() {
 		}
 		e.mu.Unlock()
 
-		e.updateCh <- struct{}{}
+		// Non-blocking send: if nobody is listening yet, drop the tick
+		select {
+		case e.updateCh <- struct{}{}:
+		default:
+		}
+
 		if reached {
 			log.Printf("elevator id %d: arrived at %d", e.ID, target)
 		}
